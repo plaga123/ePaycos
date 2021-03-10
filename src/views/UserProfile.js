@@ -1,124 +1,216 @@
 import React , {Fragment,useEffect,useState} from "react";
 
-import Swal from 'sweetalert2'
+import Swal from 'sweetalert2';
 import axios from 'axios';
 
 // react-bootstrap components
 import {
-  Badge,
+  
   Button,
   Card,
-  Form,
-  Navbar,
-  Nav,
+  Form,  
   Container,
   Row,
   Col,
+  Table,
+  
+  
 } from "react-bootstrap";
+
 
 function User() {
 
-   const [pais,setPais] = React.useState([]);
-
-   const url = 'https://restcountries.eu/rest/v2/all';
+  const API = 'http://127.0.0.1:8000/api/';
+  const [cliente,setCliente] = React.useState([]);  
+  
+  const [datos,setDatos] = useState({
+    billetera_id:'',
+    documento:'',
+    cell:'',
+    monto:'',
+    nombres:'',   
+ });    
 
    useEffect( () =>{
     obtenerDatos();
    },[])
 
-
-
    const obtenerDatos =  async () =>{
-     const data = await fetch(url)
-     const paises = await data.json();
-     setPais(paises);  
-     console.log(pais);
+     const data = await fetch(API+'cliente');
+     const _clientes = await data.json();
+     setCliente(_clientes);
    }
 
-  
-  const [datos,setDatos] = useState({
-    nombre:'',
-    apellido:'',
-    documento:'',
-    _pais:''
-  });
+   const seleccionar = (e) =>{   
 
-  const onCambio = (e) =>{  
+     return () => {
+      setDatos({
+        billetera_id:e.id,
+        documento:'',
+        cell:'',
+        monto:'',
+        nombres:e.nombres,   
+      });      
+     }
+   }
+
+   const onCambio = (e) =>{  
     setDatos({
       ...datos,
       [e.target.name]:e.target.value
-    })
-    console.log(datos._pais)
-  
+    });    
   }
 
-  const enviarDatos = (e) =>{
-    e.preventDefault();
-
-
-    if(datos.nombre == ''){
-      Swal.fire(
-        'Debe llenar el campo nombre',
-        'Presione el boton para continuar',
-        'error'
-      )
-      return false;
-    }
-    if(datos.apellido == ''){
-      Swal.fire(
-        'Debe llenar el campo apellido',
-        'Presione el boton para continuar',
-        'error'
-      )
-      return false;
-    }
+  const enviarDatos = (e) =>{    
+    e.preventDefault();    
     if(datos.documento == ''){
       Swal.fire(
-        'Debe llenar el campo documento',
+        'Debe llenar el campo Documento',
         'Presione el boton para continuar',
         'error'
       )
       return false;
     }
-
-    
-    Swal.fire(
-      'Mensaje enviado',
-      'Presione el boton para continuar',
-      'success'
-    )
-
+    if(datos.cell == ''){
+      Swal.fire(
+        'Debe llenar el campo Cel',
+        'Presione el boton para continuar',
+        'error'
+      )
+      return false;
+    }
+    if(datos.monto == ''){
+      Swal.fire(
+        'Debe llenar el campo monto',
+        'Presione el boton para continuar',
+        'error'
+      )
+      return false;
+    }
+    onRecarga();
   }
+
+
+  const onRecarga = () =>{    
+
+    return fetch(API + `recarga`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:JSON.stringify({
+         billetera_id:datos.billetera_id,
+         documento:datos.documento,
+         cell:datos.cell,
+         monto:datos.monto        
+        }),
+      })
+      .then(res => {
+        const msj =  res.json();
+        msj.then((result)=>{
+          if(result.code == 200){
+            Swal.fire(
+              result.message,
+             'Presione el boton para continuar',
+             'success'
+           )
+          datos.billetera_id ='';
+          datos.documento = '';
+          datos.cell = '';
+          datos.monto = '';
+          datos.nombres = '';   
+
+          document.getElementById("frmRecarga").reset();
+
+          }
+          if(result.code == 404){
+            Swal.fire(
+              result.message,
+             'Presione el boton para continuar',
+             'error'
+           )
+          }
+         
+        });      
+        obtenerDatos();
+      })
+      .then(res => {
+         console.log(res);
+      })
+  }
+
   return (
     <>
-    <Fragment>
     <Container fluid>
       <Row>
-        <Col md="8">
-          <Card>
-            <Card.Header>
-              <Card.Title as="h4">Información del formulario</Card.Title>
-            </Card.Header>
-            <Card.Body>
-              <Form onSubmit={enviarDatos}>
+        <Col className="pr-1" md="7">
+          <Table striped bordered hover size="sm">
+            <thead>
+              <tr>     
+                <th>Nombres</th>
+                <th>Email</th>
+                <th>Documento</th>
+                <th>Telefono</th>
+                <th>Saldo</th>
+              </tr>
+            </thead>
+            <tbody>
+             
+            {
+              cliente.map(item =>(
+                <tr key={item.id} onClick={seleccionar(item)}>
+                  <td  value={item.id}>{item.nombres}</td>
+                  <td  value={item.id} >{item.email}</td>
+                  <td  value={item.id} >{item.documento}</td>
+                  <td  value={item.id} >{item.cell}</td>
+                  <td  value={item.id} >{item.balance}</td>                  
+                </tr>
+              ))
+            }
+            </tbody>
+        </Table>
+      </Col>
+        
+      <Col className="pr-1" md="5">
+
+      <Form onSubmit={enviarDatos} id="frmRecarga">             
+
                 <Row>
-                  <Col className="pr-1" md="6">
+                  <Col md="12">
+                    <h4>{datos.nombres}</h4>
+                  </Col>  
+                </Row>
+                <Row>
+                  <Col md="12">
                     <Form.Group>
-                      <label>Nombre</label>
+                      <label>Documento</label>
                       <Form.Control                       
-                        placeholder="Nombre"
-                        name="nombre"
+                        placeholder="Documento"
+                        name="documento"
                         type="text"
                         onChange={onCambio}
                       ></Form.Control>
                     </Form.Group>
                   </Col>
-                  <Col className="px-1" md="6">
+                </Row>
+                <Row>
+                  <Col md="12">
                     <Form.Group>
-                      <label>Apellido</label>
+                      <label>Cel</label>
                       <Form.Control
-                        placeholder="Apellido"
-                        name="apellido"
+                        placeholder="Cel"
+                        name="cell"
+                        type="text"
+                        onChange={onCambio}
+                      ></Form.Control>
+                    </Form.Group>
+                  </Col>                
+                </Row>
+                <Row>
+                  <Col md="12">
+                    <Form.Group>
+                      <label>Monto</label>
+                      <Form.Control
+                        placeholder="Monto"
+                        name="monto"
                         type="text"
                         onChange={onCambio}
                       ></Form.Control>
@@ -126,57 +218,29 @@ function User() {
                   </Col>                
                 </Row>
 
-                <Row>
-                  <Col className="pr-1" md="6">
-                  <label>Selecionar un Pais</label>
-                  <select className="form-control" name="_pais" onChange={onCambio}>
-                   {
-                     pais.map(item =>(
-                       <option key={item.alpha3Code} value={item.alpha3Code} >{item.name}</option>
-                     ))
-                   }
-                  </select>             
-                  </Col>
-                  <Col className="px-1" md="6">
-                    <Form.Group>
-                      <label>Numero de Documento</label>
-                      <Form.Control
-                        placeholder="Numero de Documento"
-                        name="documento"
-                        type="text"
-                        onChange={onCambio}
-                      ></Form.Control>
-                    </Form.Group>
-                  </Col>                
-                </Row>              
                 
-              
                 <Button
                   className="btn-fill pull-right"
                   type="submit"
-                  variant="info"
+                  variant="primary"
+                  onClick={enviarDatos}
                 >
-                  Enviar
+                  Recargar
                 </Button>
               <span>  </span>
-                <Button
-                  className="btn-fill pull-right"
-                  type="button"
-                  variant="info"
-                >
-                  Cancelar
-                </Button>
+          
+        
                 <div className="clearfix"></div>
               </Form>
-            </Card.Body>
-          </Card>
-        </Col>
-        
-      </Row>
-    </Container>
-    </Fragment>
-  </>
-  
+
+
+
+      
+      
+      </Col>
+     </Row>
+  </Container>    
+    </> 
   );
 }
 
